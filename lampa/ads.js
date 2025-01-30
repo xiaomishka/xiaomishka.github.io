@@ -5,19 +5,6 @@
     window.Account = window.Account || {};
     window.Account.hasPremium = () => true;
 
-    // Ломаем загрузку рекламного видео в Preroll
-    if (window.Preroll) {
-        window.Preroll.video = function (vast, num, started, ended, call) {
-            console.log("Ломаем рекламный ролик...");
-
-            setTimeout(() => {
-                console.log("Форсируем завершение рекламы");
-                if (typeof call === "function") call(); // Запускаем основное видео
-                if (window.player) window.player.emit('AdStopped'); // Отправляем событие завершения
-            }, 100);
-        };
-    }
-
     // Перехватываем создание VASTPlayer
     let originalVASTPlayer = window.VASTPlayer;
     Object.defineProperty(window, "VASTPlayer", {
@@ -42,6 +29,33 @@
                 };
 
                 return instance;
+            };
+        }
+    });
+
+    // Ломаем запуск рекламы в Preroll
+    let originalPreroll = window.Preroll;
+    Object.defineProperty(window, "Preroll", {
+        configurable: true,
+        set: function (value) {
+            console.log("Preroll подменён!");
+            originalPreroll = value;
+        },
+        get: function () {
+            return {
+                launch: function (call) {
+                    console.log("Preroll.launch() заблокирован, сразу запускаем видео!");
+                    setTimeout(() => {
+                        if (typeof call === "function") call(); // Запускаем основное видео
+                        if (window.player) window.player.emit('AdStopped'); // Отправляем событие завершения
+                    }, 100);
+                },
+                video: function () {
+                    console.log("Preroll.video() заблокирован!");
+                },
+                show: function () {
+                    console.log("Preroll.show() заблокирован!");
+                }
             };
         }
     });
