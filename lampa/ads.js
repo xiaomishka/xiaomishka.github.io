@@ -14,7 +14,7 @@
     (function () {
         var open = XMLHttpRequest.prototype.open;
         XMLHttpRequest.prototype.open = function (method, url) {
-            if (url.includes("/api/ad/")) {
+            if (url.includes("/api/ad/all")) {
                 console.log("Блокирован рекламный запрос:", url);
                 return;
             }
