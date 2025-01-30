@@ -5,29 +5,11 @@
     window.Account = window.Account || {};
     window.Account.hasPremium = () => true;
 
-    // Ждём, пока появится VASTPlayer, и ломаем его
-    let vastCheckInterval = setInterval(() => {
-        if (window.VASTPlayer && !window.VASTPlayer.__blocked) {
-            console.log("VASTPlayer найден, блокируем рекламу...");
-            window.VASTPlayer.__blocked = true; // Флаг, чтобы не подменять дважды
-
-            window.VASTPlayer.prototype.play = function () {
-                console.log("VASTPlayer.play() заблокирован, реклама не воспроизводится");
-                if (this.onVideoComplete) {
-                    console.log("Эмулируем завершение рекламы через onVideoComplete()");
-                    this.onVideoComplete();
-                }
-            };
-
-            clearInterval(vastCheckInterval);
-        }
-    }, 500);
-
     // Ломаем загрузку рекламного видео в Preroll
     if (window.Preroll) {
         window.Preroll.video = function (vast, num, started, ended, call) {
             console.log("Ломаем рекламный ролик...");
-            
+
             setTimeout(() => {
                 console.log("Форсируем завершение рекламы");
                 if (typeof call === "function") call(); // Запускаем основное видео
@@ -35,6 +17,34 @@
             }, 100);
         };
     }
+
+    // Перехватываем создание VASTPlayer
+    let originalVASTPlayer = window.VASTPlayer;
+    Object.defineProperty(window, "VASTPlayer", {
+        configurable: true,
+        set: function (value) {
+            console.log("VASTPlayer подменён!");
+            originalVASTPlayer = value;
+        },
+        get: function () {
+            return function () {
+                console.log("Создаётся новый экземпляр VASTPlayer...");
+
+                let instance = new originalVASTPlayer(...arguments);
+
+                // Ломаем метод play()
+                instance.play = function () {
+                    console.log("VASTPlayer.play() заблокирован, реклама не воспроизводится");
+                    if (instance.onVideoComplete) {
+                        console.log("Эмулируем завершение рекламы через onVideoComplete()");
+                        instance.onVideoComplete();
+                    }
+                };
+
+                return instance;
+            };
+        }
+    });
 
     // Очищаем таймеры рекламы
     function clearAdTimers() {
