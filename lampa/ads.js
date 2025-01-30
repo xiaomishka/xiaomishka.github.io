@@ -5,58 +5,26 @@
     window.Account = window.Account || {};
     window.Account.hasPremium = () => true;
 
-    // Перехватываем создание VASTPlayer
-    let originalVASTPlayer = window.VASTPlayer;
-    Object.defineProperty(window, "VASTPlayer", {
-        configurable: true,
-        set: function (value) {
-            console.log("VASTPlayer подменён!");
-            originalVASTPlayer = value;
-        },
-        get: function () {
-            return function () {
-                console.log("Создаётся новый экземпляр VASTPlayer...");
+    // Ломаем создание <video> для рекламы
+    document.createElement = new Proxy(document.createElement, {
+        apply(target, thisArg, args) {
+            if (args[0] === "video") {
+                console.log("Перехватываем создание <video> для рекламы!");
 
-                let instance = new originalVASTPlayer(...arguments);
+                let fakeVideo = target.apply(thisArg, args);
 
-                // Ломаем метод play()
-                instance.play = function () {
-                    console.log("VASTPlayer.play() заблокирован, реклама не воспроизводится");
-                    if (instance.onVideoComplete) {
-                        console.log("Эмулируем завершение рекламы через onVideoComplete()");
-                        instance.onVideoComplete();
-                    }
+                // Запрещаем рекламе воспроизводиться
+                fakeVideo.play = function () {
+                    console.log("Рекламное видео заблокировано!");
+                    setTimeout(() => {
+                        fakeVideo.ended = true;
+                        fakeVideo.dispatchEvent(new Event("ended")); // Эмулируем завершение рекламы
+                    }, 500);
                 };
 
-                return instance;
-            };
-        }
-    });
-
-    // Ломаем запуск рекламы в Preroll
-    let originalPreroll = window.Preroll;
-    Object.defineProperty(window, "Preroll", {
-        configurable: true,
-        set: function (value) {
-            console.log("Preroll подменён!");
-            originalPreroll = value;
-        },
-        get: function () {
-            return {
-                launch: function (call) {
-                    console.log("Preroll.launch() заблокирован, сразу запускаем видео!");
-                    setTimeout(() => {
-                        if (typeof call === "function") call(); // Запускаем основное видео
-                        if (window.player) window.player.emit('AdStopped'); // Отправляем событие завершения
-                    }, 100);
-                },
-                video: function () {
-                    console.log("Preroll.video() заблокирован!");
-                },
-                show: function () {
-                    console.log("Preroll.show() заблокирован!");
-                }
-            };
+                return fakeVideo;
+            }
+            return target.apply(thisArg, args);
         }
     });
 
