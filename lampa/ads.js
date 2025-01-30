@@ -1,30 +1,41 @@
 (function () {
     console.log("Блокировка рекламы активирована");
 
-    // Подменяем проверку подписки (включаем "премиум")
+    // Подменяем проверку подписки (премиум аккаунт)
     window.Account = window.Account || {};
     window.Account.hasPremium = () => true;
-    console.log("Псевдо премиум активирован");
 
-    // Эмулируем завершение рекламы
-    function skipAd() {
-        console.log("Форсируем завершение рекламы...");
+    // Ломаем загрузку рекламного видео в Preroll
+    if (window.Preroll) {
+        window.Preroll.video = function (vast, num, started, ended, call) {
+            console.log("Ломаем рекламный ролик...");
+            
+            setTimeout(() => {
+                console.log("Форсируем завершение рекламы");
+                if (typeof call === "function") call(); // Запускаем основное видео
+                if (window.player) window.player.emit('AdStopped'); // Отправляем событие завершения
+            }, 100);
+        };
+    }
 
-        if (window.player && typeof window.player.emit === "function") {
-            window.player.emit('AdStopped'); // Сообщаем, что реклама закончилась
-            console.log("Ad complete (форсировано)");
-        }
+    // Блокируем воспроизведение рекламы в VASTPlayer
+    if (window.VASTPlayer) {
+        window.VASTPlayer.prototype.play = function () {
+            console.log("VASTPlayer.play() заблокирован, реклама не воспроизводится");
+            if (this.onVideoComplete) this.onVideoComplete(); // Эмулируем завершение рекламы
+        };
+    }
 
-        // Запускаем основной контент
-        if (typeof window.call === "function") {
-            window.call();
-            console.log("Запуск видео после рекламы");
+    // Очищаем таймеры рекламы
+    function clearAdTimers() {
+        console.log("Очищаем рекламные таймеры...");
+        let highestTimeout = setTimeout(() => {}, 0);
+        for (let i = 0; i <= highestTimeout; i++) {
+            clearTimeout(i);
+            clearInterval(i);
         }
     }
 
-    // Периодически проверяем и пропускаем рекламу
-    setInterval(skipAd, 1000);
-
-    // Пропускаем рекламу при загрузке страницы
-    document.addEventListener("DOMContentLoaded", skipAd);
+    // Убираем рекламу после загрузки страницы
+    document.addEventListener("DOMContentLoaded", clearAdTimers);
 })();
