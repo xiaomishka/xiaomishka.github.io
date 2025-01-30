@@ -5,6 +5,24 @@
     window.Account = window.Account || {};
     window.Account.hasPremium = () => true;
 
+    // Ждём, пока появится VASTPlayer, и ломаем его
+    let vastCheckInterval = setInterval(() => {
+        if (window.VASTPlayer && !window.VASTPlayer.__blocked) {
+            console.log("VASTPlayer найден, блокируем рекламу...");
+            window.VASTPlayer.__blocked = true; // Флаг, чтобы не подменять дважды
+
+            window.VASTPlayer.prototype.play = function () {
+                console.log("VASTPlayer.play() заблокирован, реклама не воспроизводится");
+                if (this.onVideoComplete) {
+                    console.log("Эмулируем завершение рекламы через onVideoComplete()");
+                    this.onVideoComplete();
+                }
+            };
+
+            clearInterval(vastCheckInterval);
+        }
+    }, 500);
+
     // Ломаем загрузку рекламного видео в Preroll
     if (window.Preroll) {
         window.Preroll.video = function (vast, num, started, ended, call) {
@@ -15,14 +33,6 @@
                 if (typeof call === "function") call(); // Запускаем основное видео
                 if (window.player) window.player.emit('AdStopped'); // Отправляем событие завершения
             }, 100);
-        };
-    }
-
-    // Блокируем воспроизведение рекламы в VASTPlayer
-    if (window.VASTPlayer) {
-        window.VASTPlayer.prototype.play = function () {
-            console.log("VASTPlayer.play() заблокирован, реклама не воспроизводится");
-            if (this.onVideoComplete) this.onVideoComplete(); // Эмулируем завершение рекламы
         };
     }
 
