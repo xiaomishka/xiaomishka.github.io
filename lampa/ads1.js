@@ -1,5 +1,5 @@
 const observer = new MutationObserver(() => {
-    let adBlock = document.querySelector('.ad-video-block');
+    let adBlock = document.querySelector('.ad_video_block');
     if (adBlock) {
         clearInterval(this.timer);
         this.video.pause();
