@@ -1,5 +1,3 @@
-(function () {
-VideoBlock.prototype.start = function () { console.log("Ad skipped!"); };
-VideoBlock.prototype.create = function () {};
-VideoBlock.prototype.load = function (data) { this.destroy(); };
-})();
+setInterval(() => {
+    document.querySelectorAll('.ad-video-block').forEach(el => el.remove());
+}, 100);
