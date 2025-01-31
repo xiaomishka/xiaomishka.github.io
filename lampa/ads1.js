@@ -1,36 +1,32 @@
 (function () {
-    console.log("Переопределение рекламы");
+    console.log("Перехват JSON для замены рекламы");
 
-    function overrideAdProperty(langObj) {
-        if (langObj && typeof langObj === "object") {
-            Object.defineProperty(langObj, 'ad', {
-                get: function () {
-                    return "НЕ реклама";
-                },
-                set: function () {
-                    console.log("Попытка изменить ad заблокирована!");
-                },
-                configurable: false, 
-                enumerable: true
+    // Перехватываем JSON.parse
+    const originalParse = JSON.parse;
+    JSON.parse = function (text, reviver) {
+        if (typeof text === "string" && text.includes('"ad":')) {
+            console.log("Перехватываем JSON и заменяем рекламу...");
+            text = text.replace(/"ad"\s*:\s*".*?"/g, '"ad": "НЕ реклама"');
+        }
+        return originalParse(text, reviver);
+    };
+
+    // Перехватываем fetch для замены JSON перед обработкой
+    const originalFetch = window.fetch;
+    window.fetch = function (...args) {
+        return originalFetch(...args).then(response => {
+            return response.text().then(text => {
+                if (text.includes('"ad":')) {
+                    console.log("Обнаружена реклама в JSON, заменяем...");
+                    text = text.replace(/"ad"\s*:\s*".*?"/g, '"ad": "НЕ реклама"');
+                }
+                return new Response(text, {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: response.headers
+                });
             });
-        }
-    }
-
-    // Переопределяем свойство ad в уже существующих объектах
-    if (window.ru) overrideAdProperty(window.ru);
-    if (window.en) overrideAdProperty(window.en);
-    if (window.de) overrideAdProperty(window.de);
-    if (window.fr) overrideAdProperty(window.fr);
-
-    // Следим за добавлением новых языков
-    new Proxy(window, {
-        set(target, prop, value) {
-            if (typeof value === "object" && value !== null) {
-                overrideAdProperty(value);
-            }
-            target[prop] = value;
-            return true;
-        }
-    });
+        });
+    };
 
 })();
