@@ -19,7 +19,7 @@
                     setTimeout(() => {
                         fakeVideo.ended = true;
                         fakeVideo.dispatchEvent(new Event("ended")); // Эмулируем завершение рекламы
-                    }, 2);
+                    }, 100);
                 };
 
                 return fakeVideo;
