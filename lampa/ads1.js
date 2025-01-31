@@ -1,3 +1,4 @@
-setInterval(() => {
-    document.querySelectorAll('.ad-video-block').forEach(el => el.remove());
-}, 100);
+VideoBlock.prototype.create = function () {
+    console.log("Ad creation blocked!");
+    this.listener.send('ended');
+};
