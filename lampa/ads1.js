@@ -1,32 +1,41 @@
 (function () {
-    console.log("Перехват JSON для замены рекламы");
+    console.log("Принудительная замена рекламы!");
 
-    // Перехватываем JSON.parse
-    const originalParse = JSON.parse;
-    JSON.parse = function (text, reviver) {
-        if (typeof text === "string" && text.includes('"ad":')) {
-            console.log("Перехватываем JSON и заменяем рекламу...");
-            text = text.replace(/"ad"\s*:\s*".*?"/g, '"ad": "НЕ реклама"');
-        }
-        return originalParse(text, reviver);
-    };
-
-    // Перехватываем fetch для замены JSON перед обработкой
-    const originalFetch = window.fetch;
-    window.fetch = function (...args) {
-        return originalFetch(...args).then(response => {
-            return response.text().then(text => {
-                if (text.includes('"ad":')) {
-                    console.log("Обнаружена реклама в JSON, заменяем...");
-                    text = text.replace(/"ad"\s*:\s*".*?"/g, '"ad": "НЕ реклама"');
+    function enforceNoAds(target) {
+        return new Proxy(target, {
+            get(obj, prop) {
+                if (prop === "ad") {
+                    return "НЕ реклама";
                 }
-                return new Response(text, {
-                    status: response.status,
-                    statusText: response.statusText,
-                    headers: response.headers
-                });
-            });
+                return obj[prop];
+            },
+            set(obj, prop, value) {
+                if (prop === "ad") {
+                    console.log("Попытка изменить ad заблокирована!");
+                    return true; // Блокируем изменение
+                }
+                obj[prop] = value;
+                return true;
+            }
         });
-    };
+    }
+
+    // Перехватываем уже существующие языковые объекты
+    if (window.ru) window.ru = enforceNoAds(window.ru);
+    if (window.en) window.en = enforceNoAds(window.en);
+    if (window.de) window.de = enforceNoAds(window.de);
+    if (window.fr) window.fr = enforceNoAds(window.fr);
+
+    // Отслеживаем добавление новых языков
+    new Proxy(window, {
+        set(target, prop, value) {
+            if (typeof value === "object" && value !== null) {
+                target[prop] = enforceNoAds(value);
+            } else {
+                target[prop] = value;
+            }
+            return true;
+        }
+    });
 
 })();
