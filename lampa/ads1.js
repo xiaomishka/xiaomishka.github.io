@@ -1,8 +1,11 @@
 const observer = new MutationObserver(() => {
     let adBlock = document.querySelector('.ad-video-block');
     if (adBlock) {
-        console.log("Ad removed!");
-        adBlock.remove();
+        clearInterval(this.timer);
+        this.video.pause();
+        this.video.src = '';
+        this.block.remove();
+        this.listener.send('ended');
         observer.disconnect(); // Остановить наблюдение после удаления
     }
 });
