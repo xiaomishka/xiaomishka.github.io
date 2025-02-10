@@ -1,4 +1,4 @@
-(function() {
+(function () {
     function replaceAdText() {
         if (window.ru && window.ru.ad) {
             window.ru.ad = 'Приятного чаяпития'; // Замените на нужное слово
