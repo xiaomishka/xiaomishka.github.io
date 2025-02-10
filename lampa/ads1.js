@@ -1,79 +1,49 @@
-
 (function () {
+
     'use strict';
 
     // Указываем, что Lampa запущена в режиме TV
     Lampa.Platform.tv();
 
-    // Устанавливаем протокол HTTP в настройках Lampa
-    Lampa.Storage.set("protocol", "http");
+    console.log("Блокировка рекламы активирована");
 
-    // Функция для управления источниками поиска
-    function updateSource() {
-        var searchSources = document.getElementsByClassName("search__sources");
-        var currentSource = Lampa.Storage.get("source");
+    // Подменяем проверку подписки (премиум аккаунт)
+    window.Account = window.Account || {};
+    window.Account.hasPremium = () => true;
 
-        if (searchSources.length > 0 || (Lampa.Activity.active() && Lampa.Activity.active().component === "category_full")) {
-            if (Lampa.Storage.get("source") === 'cub') {
-                Lampa.Storage.set('mySource', currentSource);
-                Lampa.Storage.set("source", "tmdb");
+    // Ломаем создание <video> для рекламы
+    document.createElement = new Proxy(document.createElement, {
+        apply(target, thisArg, args) {
+            if (args[0] === "video") {
+                console.log("Перехватываем создание <video> для рекламы!");
+
+                let fakeVideo = target.apply(thisArg, args);
+
+                // Запрещаем рекламе воспроизводиться
+                fakeVideo.play = function () {
+                    console.log("Рекламное видео заблокировано!");
+                    setTimeout(() => {
+                        fakeVideo.ended = true;
+                        fakeVideo.dispatchEvent(new Event("ended")); // Эмулируем завершение рекламы
+                    }, 500);
+                };
+
+                return fakeVideo;
             }
-        } else {
-            if (localStorage.getItem('mySource')) {
-                Lampa.Storage.set("source", Lampa.Storage.get('mySource'));
-                localStorage.removeItem("mySource");
-            }
+            return target.apply(thisArg, args);
+        }
+    });
+
+    // Очищаем таймеры рекламы
+    function clearAdTimers() {
+        console.log("Очищаем рекламные таймеры...");
+        let highestTimeout = setTimeout(() => {}, 0);
+        for (let i = 0; i <= highestTimeout; i++) {
+            clearTimeout(i);
+            clearInterval(i);
         }
     }
 
-    // Наблюдатель за изменениями в DOM
-    var observer = new MutationObserver(function (mutations) {
-        mutations.forEach(function (mutation) {
-            if (mutation.type === "childList") {
-                updateSource();
-            }
-        });
-    });
-
-    var observerConfig = {
-        childList: true,
-        subtree: true
-    };
-    observer.observe(document.body, observerConfig);
-
-    // Удаляем ненужные плагины
-    var plugins = Lampa.Storage.get("plugins") || [];
-    plugins = plugins.filter(function (plugin) {
-        return plugin.url !== "http://cub.red/plugin/tmdb-proxy" &&
-               plugin.url !== "https://cub.red/plugin/tmdb-proxy" &&
-               plugin.url !== "https://bylampa.github.io/tmdb-proxy.js";
-    });
-    Lampa.Storage.set("plugins", plugins);
-
-    // Проксирование изображений TMDB
-    Lampa.TMDB.image = function (path) {
-        var url = Lampa.Utils.protocol() + "image.tmdb.org/" + path;
-        return Lampa.Storage.field("proxy_tmdb") ? "http://212.113.103.137:9118/proxyimg/" + Lampa.Utils.addUrlComponent(url) : url;
-    };
-
-    // Проксирование API TMDB
-    Lampa.TMDB.api = function (endpoint) {
-        var url = Lampa.Utils.protocol() + "api.themoviedb.org/3/" + endpoint;
-        return Lampa.Storage.field("proxy_tmdb") ? "http://212.113.103.137:9118/proxy/" + Lampa.Utils.addUrlComponent(url) : url;
-    };
-
-    // Удаление настроек прокси в разделе TMDB
-    Lampa.Settings.listener.follow("open", function (event) {
-        if (event.name === "tmdb") {
-            event.body.find("[data-parent=\"proxy\"]").remove();
-        }
-    });
-
-    // Отключение DMCA-блокировки
-    var disableDMCA = setInterval(function () {
-        if (typeof window.lampa_settings !== 'undefined' && (window.lampa_settings.fixdcma || window.lampa_settings.dcma)) {
-            clearInterval(disableDMCA);
-            window.lampa_settings.dcma = false;
-        }
-    }, 100);
+    // Убираем рекламу после загрузки страницы
+    document.addEventListener("DOMContentLoaded", clearAdTimers);
 })();
