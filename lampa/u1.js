@@ -1,4 +1,9 @@
 (function () {
+     var garbage_collector = {
+      name: 'Сборщик хлама',
+      version: '1.0',
+      description: 'Убирает не нужные разделы как торренты и лента'
+    };
     function replaceAdText() {
         if (window.ru && window.ru.ad) {
             window.ru.ad = 'Приятного чаяпития'; // Замените на нужное слово
