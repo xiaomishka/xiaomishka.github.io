@@ -1,0 +1,22 @@
+/**
+* @name ZeroTwo
+* @version Auto Update
+* @description Created by 23lollo
+* @author 23lollo
+*/
+@import url("https://codedotspectra.github.io/themes/themes-cores/neutron8.css");
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans');
+:root {
+--themeColor1: #2688DCFF;
+--themeColor2: #B9BAE5FF;
+--customFont: 'Open Sans';
+--homeImage: url('https://i.imgur.com/iFEvWG0.png');
+--homeImageSize: cover;
+--backgroundColor: #4046A2FF;
+--backgroundImage: url('https://i.imgur.com/lvlSY8E.jpg');
+--backgroundPosition: center;
+--backgroundSize: cover;
+--backgroundRepeat: no-repeat;
+--backgroundBlur: 0px;
+--backgroundOpacity: 1;
+}
